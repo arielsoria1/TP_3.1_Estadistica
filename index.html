@@ -31,7 +31,6 @@
     }
 
     .number-card {
-      font-size: 2em;
       text-align: center;
       padding: 40px 20px;
     }
@@ -50,8 +49,8 @@
 
     <!-- 2. Nivel de asistencia general -->
     <div class="chart-container number-card" id="asistenciaGeneral">
-      <h3>Nivel de asistencia general</h3>
-      <div id="valorAsistenciaGeneral">Cargando...</div>
+      <div id="valorAsistenciaGeneral" style="font-weight: bold; font-size: 2.5em;">Cargando...</div>
+      <div style="font-size: 1em; color: #555;">Porcentaje de asistencia general de todos los cursos</div>
     </div>
 
     <!-- 3. Comparación asistencia por curso -->
@@ -85,278 +84,211 @@
     </div>
   </div>
 
-  <!-- JS se agregará luego aquí -->
   <script>
-  async function cargarGraficoAlumnosPorNivel() {
-    const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/estudiantes/1');
-    const json = await response.json();
-    const estudiantes = json.data;
+    // 1. Gráfico de composición del alumnado
+    async function cargarGraficoAlumnosPorNivel() {
+      const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/estudiantes/1');
+      const json = await response.json();
+      const estudiantes = json.data;
 
-    // Contar por nivel
-    const conteoNiveles = {};
-    estudiantes.forEach(est => {
-      const nivel = est.nivel;
-      if (conteoNiveles[nivel]) {
-        conteoNiveles[nivel]++;
-      } else {
-        conteoNiveles[nivel] = 1;
-      }
-    });
+      const conteoNiveles = {};
+      estudiantes.forEach(est => {
+        const nivel = est.nivel;
+        conteoNiveles[nivel] = (conteoNiveles[nivel] || 0) + 1;
+      });
 
-    const labels = Object.keys(conteoNiveles);
-    const data = Object.values(conteoNiveles);
+      const labels = Object.keys(conteoNiveles);
+      const data = Object.values(conteoNiveles);
 
-    // Crear gráfico con Chart.js
-    const ctx = document.getElementById('graficoAlumnosNivel').getContext('2d');
-    new Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Cantidad de alumnos por nivel',
-          data: data,
-          backgroundColor: [
-            '#4caf50', '#2196f3', '#ff9800', '#e91e63'
-          ],
-        }]
-      },
-      options: {
-        responsive: true
-      }
-    });
-  }
-
-  // Ejecutar al cargar
-  cargarGraficoAlumnosPorNivel();
-  async function cargarAsistenciaGeneral() {
-  const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/asistencia/1');
-  const json = await response.json();
-  const datos = json.data;
-
-  let totalPresentes = 0;
-  let totalAusentes = 0;
-
-  // Sumamos todos los presentes y ausentes
-  datos.forEach(curso => {
-    totalPresentes += curso.presentes;
-    totalAusentes += curso.ausentes;
-  });
-
-  const total = totalPresentes + totalAusentes;
-  let porcentaje = 0;
-
-  if (total > 0) {
-    porcentaje = (totalPresentes / total) * 100;
-  }
-
-  // Mostramos el resultado en el HTML
-  const div = document.getElementById('valorAsistenciaGeneral');
-  div.innerText = `${porcentaje.toFixed(2)}% de asistencia general`;
-}
-
-// Ejecutar la función
-cargarAsistenciaGeneral();
-async function cargarGraficoAsistenciaPorCurso() {
-  const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/asistencia/1');
-  const json = await response.json();
-  const datos = json.data;
-
-  const labels = [];
-  const presentesData = [];
-  const ausentesData = [];
-
-  datos.forEach(curso => {
-    labels.push(curso.curso);
-    presentesData.push(curso.presentes);
-    ausentesData.push(curso.ausentes);
-  });
-
-  const ctx = document.getElementById('graficoAsistenciaCursos').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Presentes',
-          data: presentesData,
-          backgroundColor: '#4caf50'
-        },
-        {
-          label: 'Ausentes',
-          data: ausentesData,
-          backgroundColor: '#f44336'
+      new Chart(document.getElementById('graficoAlumnosNivel'), {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: ['#4caf50', '#2196f3', '#ff9800', '#e91e63']
+          }]
         }
-      ]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        x: {
-          stacked: false
+      });
+    }
+
+    // 2. Asistencia general
+    async function cargarAsistenciaGeneral() {
+      const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/asistencia/1');
+      const json = await response.json();
+      const datos = json.data;
+
+      let totalPresentes = 0, totalAusentes = 0;
+      datos.forEach(curso => {
+        totalPresentes += curso.presentes;
+        totalAusentes += curso.ausentes;
+      });
+
+      const total = totalPresentes + totalAusentes;
+      const porcentaje = total > 0 ? (totalPresentes / total) * 100 : 0;
+
+      const div = document.getElementById('valorAsistenciaGeneral');
+      div.innerText = `${porcentaje.toFixed(2)}%`;
+    }
+
+    // 3. Asistencia por curso
+    async function cargarGraficoAsistenciaPorCurso() {
+      const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/asistencia/1');
+      const json = await response.json();
+      const datos = json.data;
+
+      const labels = [], presentesData = [], ausentesData = [];
+      datos.forEach(curso => {
+        labels.push(curso.curso);
+        presentesData.push(curso.presentes);
+        ausentesData.push(curso.ausentes);
+      });
+
+      new Chart(document.getElementById('graficoAsistenciaCursos'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Presentes', data: presentesData, backgroundColor: '#4caf50' },
+            { label: 'Ausentes', data: ausentesData, backgroundColor: '#f44336' }
+          ]
         },
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Cantidad de alumnos'
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Cantidad de alumnos' }
+            }
           }
         }
-      }
+      });
     }
-  });
-}
 
-cargarGraficoAsistenciaPorCurso();
-async function cargarGraficoAsistenciaMensual() {
-  const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/historial_asistencia/1');
-  const json = await response.json();
-  const datos = json.data;
+    // 4. Evolución mensual de asistencia (línea)
+    async function cargarGraficoAsistenciaMensual() {
+      const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/historial_asistencia/1');
+      const json = await response.json();
+      const datos = json.data;
 
-  const labels = [];
-  const data = [];
+      const labels = [], data = [];
+      datos.forEach(registro => {
+        labels.push(registro.mes);
+        data.push((registro.asistencia * 100).toFixed(2));
+      });
 
-  datos.forEach(registro => {
-    labels.push(registro.mes);
-    data.push((registro.asistencia * 100).toFixed(2)); // Convertimos a porcentaje
-  });
-
-  const ctx = document.getElementById('graficoAsistenciaMensual').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Asistencia mensual (%)',
-        data: data,
-        backgroundColor: '#2196f3'
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          title: {
-            display: true,
-            text: 'Porcentaje de asistencia'
-          }
-        }
-      }
-    }
-  });
-}
-
-cargarGraficoAsistenciaMensual();
-async function cargarGraficoCalificacionesGlobal() {
-  const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/calificaciones/1');
-  const json = await response.json();
-  const datos = json.data;
-
-  let totalAprobados = 0;
-  let totalDesaprobados = 0;
-
-  datos.forEach(curso => {
-    totalAprobados += curso.aprobados;
-    totalDesaprobados += curso.desaprobados;
-  });
-
-  const ctx = document.getElementById('graficoCalificacionesGlobal').getContext('2d');
-  new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Aprobados', 'Desaprobados'],
-      datasets: [{
-        data: [
-          (totalAprobados * 100).toFixed(2),
-          (totalDesaprobados * 100).toFixed(2)
-        ],
-        backgroundColor: ['#4caf50', '#f44336']
-      }]
-    },
-    options: {
-      responsive: true
-    }
-  });
-}
-
-cargarGraficoCalificacionesGlobal();
-async function cargarGraficoCalificacionesPorCurso() {
-  const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/calificaciones/1');
-  const json = await response.json();
-  const datos = json.data;
-
-  const labels = [];
-  const aprobadosData = [];
-  const desaprobadosData = [];
-
-  datos.forEach(curso => {
-    labels.push(curso.curso);
-    aprobadosData.push((curso.aprobados * 100).toFixed(2));
-    desaprobadosData.push((curso.desaprobados * 100).toFixed(2));
-  });
-
-  const ctx = document.getElementById('graficoCalificacionesCursos').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Aprobados (%)',
-          data: aprobadosData,
-          backgroundColor: '#4caf50'
+      new Chart(document.getElementById('graficoAsistenciaMensual'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Asistencia mensual (%)',
+            data: data,
+            backgroundColor: '#2196f3',
+            borderColor: '#2196f3',
+            fill: false,
+            tension: 0.3
+          }]
         },
-        {
-          label: 'Desaprobados (%)',
-          data: desaprobadosData,
-          backgroundColor: '#f44336'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 100,
-          title: {
-            display: true,
-            text: 'Porcentaje'
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: 'Porcentaje de asistencia' }
+            }
           }
         }
-      }
+      });
     }
-  });
-}
 
-cargarGraficoCalificacionesPorCurso();
-async function cargarGraficoComunicados() {
-  const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/comunicados/1');
-  const json = await response.json();
-  const datos = json.data[0]; // solo hay un objeto
+    // 5. Calificaciones globales
+    async function cargarGraficoCalificacionesGlobal() {
+      const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/calificaciones/1');
+      const json = await response.json();
+      const datos = json.data;
 
-  const ctx = document.getElementById('graficoComunicados').getContext('2d');
-  new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Entregados', 'Pendientes', 'Error'],
-      datasets: [{
-        data: [datos.entregados, datos.pendientes, datos.error],
-        backgroundColor: ['#4caf50', '#ffc107', '#f44336']
-      }]
-    },
-    options: {
-      responsive: true
+      let totalAprob = 0, totalDesaprob = 0;
+      datos.forEach(curso => {
+        totalAprob += curso.aprobados;
+        totalDesaprob += curso.desaprobados;
+      });
+
+      new Chart(document.getElementById('graficoCalificacionesGlobal'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Aprobados', 'Desaprobados'],
+          datasets: [{
+            data: [(totalAprob * 100).toFixed(2), (totalDesaprob * 100).toFixed(2)],
+            backgroundColor: ['#4caf50', '#f44336']
+          }]
+        }
+      });
     }
-  });
-}
 
-cargarGraficoComunicados();
+    // 6. Calificaciones por curso
+    async function cargarGraficoCalificacionesPorCurso() {
+      const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/calificaciones/1');
+      const json = await response.json();
+      const datos = json.data;
 
-</script>
+      const labels = [], aprobados = [], desaprobados = [];
+      datos.forEach(curso => {
+        labels.push(curso.curso);
+        aprobados.push((curso.aprobados * 100).toFixed(2));
+        desaprobados.push((curso.desaprobados * 100).toFixed(2));
+      });
 
+      new Chart(document.getElementById('graficoCalificacionesCursos'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Aprobados (%)', data: aprobados, backgroundColor: '#4caf50' },
+            { label: 'Desaprobados (%)', data: desaprobados, backgroundColor: '#f44336' }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: 'Porcentaje' }
+            }
+          }
+        }
+      });
+    }
+
+    // 7. Comunicados
+    async function cargarGraficoComunicados() {
+      const response = await fetch('https://apidemo.geoeducacion.com.ar/api/testing/comunicados/1');
+      const json = await response.json();
+      const datos = json.data[0];
+
+      new Chart(document.getElementById('graficoComunicados'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Entregados', 'Pendientes', 'Error'],
+          datasets: [{
+            data: [datos.entregados, datos.pendientes, datos.error],
+            backgroundColor: ['#4caf50', '#ffc107', '#f44336']
+          }]
+        }
+      });
+    }
+
+    // Ejecutar todas las funciones al cargar la página
+    cargarGraficoAlumnosPorNivel();
+    cargarAsistenciaGeneral();
+    cargarGraficoAsistenciaPorCurso();
+    cargarGraficoAsistenciaMensual();
+    cargarGraficoCalificacionesGlobal();
+    cargarGraficoCalificacionesPorCurso();
+    cargarGraficoComunicados();
+  </script>
 
 </body>
 </html>
